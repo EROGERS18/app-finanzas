@@ -523,6 +523,27 @@ class CloudStorageService {
     }
   }
 
+  // --- LIMPIEZA TOTAL DE DATOS EN LA NUBE ---
+  async clearAllUserData(userId: string): Promise<boolean> {
+    if (!this.isReady() || !supabase) return false;
+    try {
+      await Promise.all([
+        supabase.from('transactions').delete().eq('user_id', userId),
+        supabase.from('categories').delete().eq('user_id', userId),
+        supabase.from('payment_methods').delete().eq('user_id', userId),
+        supabase.from('credit_cards').delete().eq('user_id', userId),
+        supabase.from('card_movements').delete().eq('user_id', userId),
+        supabase.from('loans').delete().eq('user_id', userId),
+        supabase.from('loan_payments').delete().eq('user_id', userId),
+        supabase.from('budgets').delete().eq('user_id', userId),
+      ]);
+      return true;
+    } catch (err) {
+      console.error('Error al borrar datos del usuario en la nube:', err);
+      return false;
+    }
+  }
+
   // --- SUSCRIPCIÓN EN TIEMPO REAL (Realtime Sincro PC / Móvil) ---
   subscribeToChanges(userId: string, onUpdate: () => void): () => void {
     if (!this.isReady() || !supabase) return () => {};

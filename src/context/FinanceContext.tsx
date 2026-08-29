@@ -134,22 +134,10 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       const uId = currentUser.id;
 
-      // 1. PUSH: Subir perfil de usuario a Supabase si no existe en la nube
+      // 1. PUSH: Guardar perfil en la nube
       await cloudStorageService.saveProfile(currentUser);
 
-      // 2. PUSH: Subir datos locales actuales a la nube de Supabase
-      await Promise.all([
-        ...categories.map(c => cloudStorageService.saveCategory(uId, c)),
-        ...paymentMethods.map(pm => cloudStorageService.savePaymentMethod(uId, pm)),
-        ...creditCards.map(cc => cloudStorageService.saveCreditCard(uId, cc)),
-        ...cardMovements.map(cm => cloudStorageService.saveCardMovement(uId, cm)),
-        ...loans.map(l => cloudStorageService.saveLoan(uId, l)),
-        ...loanPayments.map(lp => cloudStorageService.saveLoanPayment(uId, lp)),
-        ...transactions.map(tx => cloudStorageService.saveTransaction(uId, tx)),
-        ...budgets.map(b => cloudStorageService.saveBudget(uId, b)),
-      ]);
-
-      // 3. PULL: Descargar estado actualizado desde Supabase
+      // 2. FETCH: Obtener estado en la nube de Supabase
       const [cCloud, pmCloud, ccCloud, cmCloud, lCloud, lpCloud, txCloud, bCloud] = await Promise.all([
         cloudStorageService.fetchCategories(uId),
         cloudStorageService.fetchPaymentMethods(uId),
@@ -161,14 +149,66 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         cloudStorageService.fetchBudgets(uId),
       ]);
 
-      if (cCloud && cCloud.length > 0) setCategories(cCloud);
-      if (pmCloud && pmCloud.length > 0) setPaymentMethods(pmCloud);
-      if (ccCloud) setCreditCards(ccCloud);
-      if (cmCloud) setCardMovements(cmCloud);
-      if (lCloud) setLoans(lCloud);
-      if (lpCloud) setLoanPayments(lpCloud);
-      if (txCloud) setTransactions(txCloud);
-      if (bCloud && bCloud.length > 0) setBudgets(bCloud);
+      // Si la nube tiene transacciones, usar los datos de la nube como fuente de verdad
+      if (txCloud !== null) {
+        if (transactions.length > 0 && txCloud.length === 0) {
+          await Promise.all(transactions.map(tx => cloudStorageService.saveTransaction(uId, tx)));
+        } else {
+          setTransactions(txCloud);
+          storageService.saveTransactions(uId, txCloud);
+        }
+      }
+
+      if (cCloud !== null) {
+        if (categories.length > 0 && cCloud.length === 0) {
+          await Promise.all(categories.map(c => cloudStorageService.saveCategory(uId, c)));
+        } else if (cCloud.length > 0) {
+          setCategories(cCloud);
+          storageService.saveCategories(uId, cCloud);
+        }
+      }
+
+      if (pmCloud !== null && pmCloud.length > 0) {
+        setPaymentMethods(pmCloud);
+        storageService.savePaymentMethods(uId, pmCloud);
+      }
+
+      if (ccCloud !== null) {
+        if (creditCards.length > 0 && ccCloud.length === 0) {
+          await Promise.all(creditCards.map(cc => cloudStorageService.saveCreditCard(uId, cc)));
+        } else {
+          setCreditCards(ccCloud);
+          storageService.saveCreditCards(uId, ccCloud);
+        }
+      }
+
+      if (cmCloud !== null) {
+        setCardMovements(cmCloud);
+        storageService.saveCardMovements(uId, cmCloud);
+      }
+
+      if (lCloud !== null) {
+        if (loans.length > 0 && lCloud.length === 0) {
+          await Promise.all(loans.map(l => cloudStorageService.saveLoan(uId, l)));
+        } else {
+          setLoans(lCloud);
+          storageService.saveLoans(uId, lCloud);
+        }
+      }
+
+      if (lpCloud !== null) {
+        setLoanPayments(lpCloud);
+        storageService.saveLoanPayments(uId, lpCloud);
+      }
+
+      if (bCloud !== null) {
+        if (budgets.length > 0 && bCloud.length === 0) {
+          await Promise.all(budgets.map(b => cloudStorageService.saveBudget(uId, b)));
+        } else if (bCloud.length > 0) {
+          setBudgets(bCloud);
+          storageService.saveBudgets(uId, bCloud);
+        }
+      }
     } catch (err) {
       console.error('Error al realizar sincronización bidireccional con la nube:', err);
     } finally {
@@ -770,7 +810,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setDismissedAlertIds([]);
   };
 
-  const clearAllData = () => {
+  const clearAllData = async () => {
     if (!currentUser) return;
     storageService.clearUserData(currentUser.id);
     setTransactions([]);
@@ -781,6 +821,10 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setLoanPayments([]);
     setPaymentMethods(prev => prev.map(pm => ({ ...pm, balance: 0 })));
     setDismissedAlertIds([]);
+
+    if (cloudStorageService.isReady()) {
+      await cloudStorageService.clearAllUserData(currentUser.id);
+    }
   };
 
   const openQuickModal = (type: TransactionType = 'expense') => {
