@@ -155,12 +155,12 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         storageService.saveTransactions(uId, txCloud);
       }
 
-      if (cCloud !== null && cCloud.length > 0) {
+      if (cCloud !== null) {
         setCategories(cCloud);
         storageService.saveCategories(uId, cCloud);
       }
 
-      if (pmCloud !== null && pmCloud.length > 0) {
+      if (pmCloud !== null) {
         setPaymentMethods(pmCloud);
         storageService.savePaymentMethods(uId, pmCloud);
       }
@@ -185,7 +185,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         storageService.saveLoanPayments(uId, lpCloud);
       }
 
-      if (bCloud !== null && bCloud.length > 0) {
+      if (bCloud !== null) {
         setBudgets(bCloud);
         storageService.saveBudgets(uId, bCloud);
       }
@@ -196,7 +196,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
-  // Auto-sincronización al iniciar sesión y suscripción en tiempo real (Realtime WebSockets)
+  // Auto-sincronización al iniciar sesión, suscripción en tiempo real y Polling de Respaldo cada 3 segundos
   useEffect(() => {
     if (!currentUser || !cloudStorageService.isReady()) return;
 
@@ -206,8 +206,14 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       syncCloudData();
     });
 
+    // Intervalo de sincronización periódica activa entre pestañas/dispositivos (cada 3 segundos)
+    const pollInterval = setInterval(() => {
+      syncCloudData();
+    }, 3000);
+
     return () => {
       unsubscribe();
+      clearInterval(pollInterval);
     };
   }, [currentUser?.id]);
 
