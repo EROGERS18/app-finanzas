@@ -46,7 +46,7 @@ class CloudStorageService {
   async saveProfile(user: UserProfile): Promise<boolean> {
     if (!this.isReady() || !supabase) return false;
     try {
-      const { error } = await supabase.from('profiles').upsert({
+      const payload: any = {
         user_id: user.id,
         name: user.name,
         email: user.email.toLowerCase(),
@@ -56,7 +56,14 @@ class CloudStorageService {
         phone: user.phone || null,
         primary_currency: user.primaryCurrency || 'DOP',
         created_at: user.createdAt || new Date().toISOString(),
-      }, { onConflict: 'user_id' });
+      };
+
+      const { error } = await supabase.from('profiles').upsert(payload, { onConflict: 'user_id' });
+      if (error && (error.code === 'PGRST204' || error.message?.includes('password'))) {
+        delete payload.password;
+        const { error: err2 } = await supabase.from('profiles').upsert(payload, { onConflict: 'user_id' });
+        return !err2;
+      }
       return !error;
     } catch (err) {
       console.error('Error al guardar usuario en la nube:', err);

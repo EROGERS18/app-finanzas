@@ -82,8 +82,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: false, error: 'No existe una cuenta registrada con este correo electrónico.' };
     }
 
-    if (user.password !== password) {
+    if (user.password && user.password !== password) {
       return { success: false, error: 'La contraseña ingresada es incorrecta.' };
+    }
+
+    if (!user.password) {
+      user.password = password;
+      updateProfile({ password });
     }
 
     setCurrentUser(user);
