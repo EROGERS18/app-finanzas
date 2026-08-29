@@ -149,45 +149,69 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         cloudStorageService.fetchBudgets(uId),
       ]);
 
-      // Supabase es la fuente de verdad única (Cloud-First)
+      // Supabase es la fuente de verdad única (Cloud-First) con actualización condicional anti-flicker
       if (txCloud !== null) {
-        setTransactions(txCloud);
-        storageService.saveTransactions(uId, txCloud);
+        setTransactions(prev => {
+          if (JSON.stringify(prev) === JSON.stringify(txCloud)) return prev;
+          storageService.saveTransactions(uId, txCloud);
+          return txCloud;
+        });
       }
 
       if (cCloud !== null) {
-        setCategories(cCloud);
-        storageService.saveCategories(uId, cCloud);
+        setCategories(prev => {
+          if (JSON.stringify(prev) === JSON.stringify(cCloud)) return prev;
+          storageService.saveCategories(uId, cCloud);
+          return cCloud;
+        });
       }
 
       if (pmCloud !== null) {
-        setPaymentMethods(pmCloud);
-        storageService.savePaymentMethods(uId, pmCloud);
+        setPaymentMethods(prev => {
+          if (JSON.stringify(prev) === JSON.stringify(pmCloud)) return prev;
+          storageService.savePaymentMethods(uId, pmCloud);
+          return pmCloud;
+        });
       }
 
       if (ccCloud !== null) {
-        setCreditCards(ccCloud);
-        storageService.saveCreditCards(uId, ccCloud);
+        setCreditCards(prev => {
+          if (JSON.stringify(prev) === JSON.stringify(ccCloud)) return prev;
+          storageService.saveCreditCards(uId, ccCloud);
+          return ccCloud;
+        });
       }
 
       if (cmCloud !== null) {
-        setCardMovements(cmCloud);
-        storageService.saveCardMovements(uId, cmCloud);
+        setCardMovements(prev => {
+          if (JSON.stringify(prev) === JSON.stringify(cmCloud)) return prev;
+          storageService.saveCardMovements(uId, cmCloud);
+          return cmCloud;
+        });
       }
 
       if (lCloud !== null) {
-        setLoans(lCloud);
-        storageService.saveLoans(uId, lCloud);
+        setLoans(prev => {
+          if (JSON.stringify(prev) === JSON.stringify(lCloud)) return prev;
+          storageService.saveLoans(uId, lCloud);
+          return lCloud;
+        });
       }
 
       if (lpCloud !== null) {
-        setLoanPayments(lpCloud);
-        storageService.saveLoanPayments(uId, lpCloud);
+        setLoanPayments(prev => {
+          if (JSON.stringify(prev) === JSON.stringify(lpCloud)) return prev;
+          storageService.saveLoanPayments(uId, lpCloud);
+          return lpCloud;
+        });
       }
 
       if (bCloud !== null) {
-        setBudgets(bCloud);
-        storageService.saveBudgets(uId, bCloud);
+        setBudgets(prev => {
+          if (JSON.stringify(prev) === JSON.stringify(bCloud)) return prev;
+          storageService.saveBudgets(uId, bCloud);
+          return bCloud;
+        });
       }
     } catch (err) {
       console.error('Error al realizar sincronización con la nube:', err);
@@ -196,26 +220,36 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
-  // Auto-sincronización al iniciar sesión, suscripción en tiempo real y Polling de Respaldo cada 3 segundos
+  const [quickModalOpen, setQuickModalOpen] = useState<boolean>(false);
+  const [quickModalType, setQuickModalType] = useState<TransactionType>('expense');
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [confirmDialogOptions, setConfirmDialogOptions] = useState<ConfirmDialogOptions | null>(null);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+
+  // Auto-sincronización al iniciar sesión, suscripción en tiempo real y Polling Suave de Respaldo (15s)
   useEffect(() => {
     if (!currentUser || !cloudStorageService.isReady()) return;
 
     syncCloudData();
 
     const unsubscribe = cloudStorageService.subscribeToChanges(currentUser.id, () => {
-      syncCloudData();
+      if (!quickModalOpen && !editingTransaction && !isConfirmOpen) {
+        syncCloudData();
+      }
     });
 
-    // Intervalo de sincronización periódica activa entre pestañas/dispositivos (cada 3 segundos)
+    // Polling inteligente cada 15s (pausado si el usuario está escribiendo en un formulario/modal)
     const pollInterval = setInterval(() => {
-      syncCloudData();
-    }, 3000);
+      if (!quickModalOpen && !editingTransaction && !isConfirmOpen) {
+        syncCloudData();
+      }
+    }, 15000);
 
     return () => {
       unsubscribe();
       clearInterval(pollInterval);
     };
-  }, [currentUser?.id]);
+  }, [currentUser?.id, quickModalOpen, editingTransaction, isConfirmOpen]);
 
   // Filtros
   const currentYearMonth = new Date().toISOString().slice(0, 7);
@@ -224,13 +258,6 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [displayCurrency, setDisplayCurrency] = useState<CurrencyCode>(currentUser?.primaryCurrency || 'DOP');
   
   const [dismissedAlertIds, setDismissedAlertIds] = useState<string[]>([]);
-  const [quickModalOpen, setQuickModalOpen] = useState<boolean>(false);
-  const [quickModalType, setQuickModalType] = useState<TransactionType>('expense');
-  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-
-  // Modal de Confirmación Global de Eliminación
-  const [confirmDialogOptions, setConfirmDialogOptions] = useState<ConfirmDialogOptions | null>(null);
-  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   const confirmDelete = (options: ConfirmDialogOptions) => {
     setConfirmDialogOptions(options);
