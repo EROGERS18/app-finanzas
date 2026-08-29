@@ -134,10 +134,10 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       const uId = currentUser.id;
 
-      // 1. PUSH: Guardar perfil en la nube
+      // 1. Guardar perfil en la nube
       await cloudStorageService.saveProfile(currentUser);
 
-      // 2. FETCH: Obtener estado en la nube de Supabase
+      // 2. Obtener estado real en la nube de Supabase
       const [cCloud, pmCloud, ccCloud, cmCloud, lCloud, lpCloud, txCloud, bCloud] = await Promise.all([
         cloudStorageService.fetchCategories(uId),
         cloudStorageService.fetchPaymentMethods(uId),
@@ -149,23 +149,15 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         cloudStorageService.fetchBudgets(uId),
       ]);
 
-      // Si la nube tiene transacciones, usar los datos de la nube como fuente de verdad
+      // Supabase es la fuente de verdad única (Cloud-First)
       if (txCloud !== null) {
-        if (transactions.length > 0 && txCloud.length === 0) {
-          await Promise.all(transactions.map(tx => cloudStorageService.saveTransaction(uId, tx)));
-        } else {
-          setTransactions(txCloud);
-          storageService.saveTransactions(uId, txCloud);
-        }
+        setTransactions(txCloud);
+        storageService.saveTransactions(uId, txCloud);
       }
 
-      if (cCloud !== null) {
-        if (categories.length > 0 && cCloud.length === 0) {
-          await Promise.all(categories.map(c => cloudStorageService.saveCategory(uId, c)));
-        } else if (cCloud.length > 0) {
-          setCategories(cCloud);
-          storageService.saveCategories(uId, cCloud);
-        }
+      if (cCloud !== null && cCloud.length > 0) {
+        setCategories(cCloud);
+        storageService.saveCategories(uId, cCloud);
       }
 
       if (pmCloud !== null && pmCloud.length > 0) {
@@ -174,12 +166,8 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
 
       if (ccCloud !== null) {
-        if (creditCards.length > 0 && ccCloud.length === 0) {
-          await Promise.all(creditCards.map(cc => cloudStorageService.saveCreditCard(uId, cc)));
-        } else {
-          setCreditCards(ccCloud);
-          storageService.saveCreditCards(uId, ccCloud);
-        }
+        setCreditCards(ccCloud);
+        storageService.saveCreditCards(uId, ccCloud);
       }
 
       if (cmCloud !== null) {
@@ -188,12 +176,8 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
 
       if (lCloud !== null) {
-        if (loans.length > 0 && lCloud.length === 0) {
-          await Promise.all(loans.map(l => cloudStorageService.saveLoan(uId, l)));
-        } else {
-          setLoans(lCloud);
-          storageService.saveLoans(uId, lCloud);
-        }
+        setLoans(lCloud);
+        storageService.saveLoans(uId, lCloud);
       }
 
       if (lpCloud !== null) {
@@ -201,16 +185,12 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         storageService.saveLoanPayments(uId, lpCloud);
       }
 
-      if (bCloud !== null) {
-        if (budgets.length > 0 && bCloud.length === 0) {
-          await Promise.all(budgets.map(b => cloudStorageService.saveBudget(uId, b)));
-        } else if (bCloud.length > 0) {
-          setBudgets(bCloud);
-          storageService.saveBudgets(uId, bCloud);
-        }
+      if (bCloud !== null && bCloud.length > 0) {
+        setBudgets(bCloud);
+        storageService.saveBudgets(uId, bCloud);
       }
     } catch (err) {
-      console.error('Error al realizar sincronización bidireccional con la nube:', err);
+      console.error('Error al realizar sincronización con la nube:', err);
     } finally {
       setIsCloudSyncing(false);
     }
