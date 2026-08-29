@@ -573,6 +573,9 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const deleteCreditCard = (id: string) => {
     setCreditCards(prev => prev.filter(c => c.id !== id));
     setCardMovements(prev => prev.filter(m => m.cardId !== id));
+    if (currentUser) {
+      cloudStorageService.deleteCreditCard(currentUser.id, id);
+    }
   };
 
   const payCreditCard = (
@@ -650,6 +653,9 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const deleteLoan = (id: string) => {
     setLoans(prev => prev.filter(l => l.id !== id));
     setLoanPayments(prev => prev.filter(p => p.loanId !== id));
+    if (currentUser) {
+      cloudStorageService.deleteLoan(currentUser.id, id);
+    }
   };
 
   const payLoanInstallment = (
@@ -760,6 +766,9 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const deletePaymentMethod = (id: string) => {
     setPaymentMethods(prev => prev.filter(p => p.id !== id));
+    if (currentUser) {
+      cloudStorageService.deletePaymentMethod(currentUser.id, id);
+    }
   };
 
   // --- CRUD PRESUPUESTOS ---
@@ -777,6 +786,9 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const deleteBudget = (id: string) => {
     setBudgets(prev => prev.filter(b => b.id !== id));
+    if (currentUser) {
+      cloudStorageService.deleteBudget(currentUser.id, id);
+    }
   };
 
   // Ajustes
@@ -814,11 +826,13 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setCardMovements([]);
     setLoans([]);
     setLoanPayments([]);
-    setPaymentMethods(prev => prev.map(pm => ({ ...pm, balance: 0 })));
+    const resetMethods = paymentMethods.map(pm => ({ ...pm, balance: 0 }));
+    setPaymentMethods(resetMethods);
     setDismissedAlertIds([]);
 
     if (cloudStorageService.isReady()) {
       await cloudStorageService.clearAllUserData(currentUser.id);
+      await Promise.all(resetMethods.map(pm => cloudStorageService.savePaymentMethod(currentUser.id, pm)));
     }
   };
 

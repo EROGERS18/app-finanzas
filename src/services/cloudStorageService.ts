@@ -253,6 +253,17 @@ class CloudStorageService {
     }
   }
 
+  async deletePaymentMethod(userId: string, id: string): Promise<boolean> {
+    if (!this.isReady() || !supabase) return false;
+    try {
+      const { error } = await supabase.from('payment_methods').delete().eq('user_id', userId).eq('id', id);
+      return !error;
+    } catch (err) {
+      console.error('Error al eliminar método de pago en la nube:', err);
+      return false;
+    }
+  }
+
   // --- TARJETAS DE CRÉDITO ---
   async fetchCreditCards(userId: string): Promise<CreditCard[] | null> {
     if (!this.isReady() || !supabase) return null;
@@ -306,6 +317,17 @@ class CloudStorageService {
       return !error;
     } catch (err) {
       console.error('Error al guardar tarjeta en la nube:', err);
+      return false;
+    }
+  }
+
+  async deleteCreditCard(userId: string, id: string): Promise<boolean> {
+    if (!this.isReady() || !supabase) return false;
+    try {
+      const { error } = await supabase.from('credit_cards').delete().eq('user_id', userId).eq('id', id);
+      return !error;
+    } catch (err) {
+      console.error('Error al eliminar tarjeta en la nube:', err);
       return false;
     }
   }
@@ -426,6 +448,17 @@ class CloudStorageService {
     }
   }
 
+  async deleteLoan(userId: string, id: string): Promise<boolean> {
+    if (!this.isReady() || !supabase) return false;
+    try {
+      const { error } = await supabase.from('loans').delete().eq('user_id', userId).eq('id', id);
+      return !error;
+    } catch (err) {
+      console.error('Error al eliminar préstamo en la nube:', err);
+      return false;
+    }
+  }
+
   // --- PAGOS DE PRÉSTAMOS ---
   async fetchLoanPayments(userId: string): Promise<LoanPayment[] | null> {
     if (!this.isReady() || !supabase) return null;
@@ -513,6 +546,17 @@ class CloudStorageService {
       return !error;
     } catch (err) {
       console.error('Error al guardar presupuesto en la nube:', err);
+      return false;
+    }
+  }
+
+  async deleteBudget(userId: string, id: string): Promise<boolean> {
+    if (!this.isReady() || !supabase) return false;
+    try {
+      const { error } = await supabase.from('budgets').delete().eq('user_id', userId).eq('id', id);
+      return !error;
+    } catch (err) {
+      console.error('Error al eliminar presupuesto en la nube:', err);
       return false;
     }
   }
