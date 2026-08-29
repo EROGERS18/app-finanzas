@@ -548,18 +548,28 @@ class CloudStorageService {
   subscribeToChanges(userId: string, onUpdate: () => void): () => void {
     if (!this.isReady() || !supabase) return () => {};
 
-    const channel = supabase
-      .channel(`user-sync-${userId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', filter: `user_id=eq.${userId}` }, () => {
-        onUpdate();
-      })
-      .subscribe();
+    try {
+      const uniqueChannelId = `sync-${userId.replace(/[^a-zA-Z0-9]/g, '_')}-${Date.now()}`;
+      const channel = supabase
+        .channel(uniqueChannelId)
+        .on('postgres_changes', { event: '*', schema: 'public', filter: `user_id=eq.${userId}` }, () => {
+          onUpdate();
+        })
+        .subscribe();
 
-    return () => {
-      if (supabase) {
-        supabase.removeChannel(channel);
-      }
-    };
+      return () => {
+        try {
+          if (supabase && channel) {
+            supabase.removeChannel(channel);
+          }
+        } catch {
+          // Ignorar errores al desuscribir
+        }
+      };
+    } catch (err) {
+      console.error('Error al suscribir cambios en tiempo real:', err);
+      return () => {};
+    }
   }
 }
 

@@ -137,6 +137,43 @@ const MainLayout: React.FC = () => {
   );
 };
 
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: any }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: any, errorInfo: any) {
+    console.error("React ErrorBoundary capturó un error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-6 text-center">
+          <h2 className="text-2xl font-bold text-emerald-400 mb-2">DomiFinan - Recuperación del Sistema</h2>
+          <p className="text-slate-300 mb-4 max-w-md">Ocurrió un error inesperado al cargar la vista. Haz clic abajo para reiniciar la aplicación limpiamente.</p>
+          <button
+            onClick={() => {
+              this.setState({ hasError: false });
+              window.location.reload();
+            }}
+            className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 font-semibold rounded-xl text-slate-950 transition"
+          >
+            Reiniciar Aplicación
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 const AppContent: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const [showSplash, setShowSplash] = useState(true);
@@ -158,9 +195,11 @@ const AppContent: React.FC = () => {
 
 export function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 
