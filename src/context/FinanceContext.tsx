@@ -226,28 +226,34 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [confirmDialogOptions, setConfirmDialogOptions] = useState<ConfirmDialogOptions | null>(null);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
-  // Auto-sincronización al iniciar sesión, suscripción en tiempo real y Polling Suave de Respaldo (15s)
+  // Auto-sincronización basada en eventos: al iniciar sesión, al presionar botones, al enfocar la pestaña y vía WebSockets
   useEffect(() => {
     if (!currentUser || !cloudStorageService.isReady()) return;
 
+    // Sincronización inicial
     syncCloudData();
 
+    // Suscripción Realtime (WebSockets para cambios remotos de otros dispositivos)
     const unsubscribe = cloudStorageService.subscribeToChanges(currentUser.id, () => {
       if (!quickModalOpen && !editingTransaction && !isConfirmOpen) {
         syncCloudData();
       }
     });
 
-    // Polling inteligente cada 15s (pausado si el usuario está escribiendo en un formulario/modal)
-    const pollInterval = setInterval(() => {
-      if (!quickModalOpen && !editingTransaction && !isConfirmOpen) {
+    // Sincronización de respaldo suave al volver a enfocar la pestaña del navegador
+    const handleFocus = () => {
+      if (document.visibilityState === 'visible' && !quickModalOpen && !editingTransaction && !isConfirmOpen) {
         syncCloudData();
       }
-    }, 15000);
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleFocus);
 
     return () => {
       unsubscribe();
-      clearInterval(pollInterval);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleFocus);
     };
   }, [currentUser?.id, quickModalOpen, editingTransaction, isConfirmOpen]);
 
