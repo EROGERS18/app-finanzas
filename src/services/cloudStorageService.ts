@@ -20,6 +20,50 @@ class CloudStorageService {
     return isSupabaseConfigured() && supabase !== null;
   }
 
+  // --- PERFILES DE USUARIO ---
+  async fetchProfiles(): Promise<UserProfile[] | null> {
+    if (!this.isReady() || !supabase) return null;
+    try {
+      const { data, error } = await supabase.from('profiles').select('*');
+      if (error) throw error;
+      return (data || []).map(row => ({
+        id: row.user_id || row.id,
+        name: row.name,
+        email: row.email,
+        password: row.password || '',
+        avatarUrl: row.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+        birthDate: row.birth_date || '',
+        phone: row.phone || '',
+        primaryCurrency: row.primary_currency || 'DOP',
+        createdAt: row.created_at || new Date().toISOString(),
+      }));
+    } catch (err) {
+      console.error('Error al cargar usuarios de la nube:', err);
+      return null;
+    }
+  }
+
+  async saveProfile(user: UserProfile): Promise<boolean> {
+    if (!this.isReady() || !supabase) return false;
+    try {
+      const { error } = await supabase.from('profiles').upsert({
+        user_id: user.id,
+        name: user.name,
+        email: user.email.toLowerCase(),
+        password: user.password,
+        avatar_url: user.avatarUrl,
+        birth_date: user.birthDate || null,
+        phone: user.phone || null,
+        primary_currency: user.primaryCurrency || 'DOP',
+        created_at: user.createdAt || new Date().toISOString(),
+      }, { onConflict: 'user_id' });
+      return !error;
+    } catch (err) {
+      console.error('Error al guardar usuario en la nube:', err);
+      return false;
+    }
+  }
+
   // --- TRANSACCIONES ---
   async fetchTransactions(userId: string): Promise<Transaction[] | null> {
     if (!this.isReady() || !supabase) return null;

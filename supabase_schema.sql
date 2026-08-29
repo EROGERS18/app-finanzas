@@ -11,12 +11,14 @@ CREATE TABLE IF NOT EXISTS profiles (
   user_id TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
   email TEXT UNIQUE NOT NULL,
+  password TEXT,
   avatar_url TEXT,
   birth_date TEXT,
   phone TEXT,
   primary_currency TEXT DEFAULT 'DOP',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS password TEXT;
 
 -- 2. TABLA DE CATEGORÍAS
 CREATE TABLE IF NOT EXISTS categories (
