@@ -58,10 +58,10 @@ class CloudStorageService {
         created_at: user.createdAt || new Date().toISOString(),
       };
 
-      const { error } = await supabase.from('profiles').upsert(payload, { onConflict: 'user_id' });
+      const { error } = await supabase.from('profiles').upsert(payload, { onConflict: 'email' });
       if (error && (error.code === 'PGRST204' || error.message?.includes('password'))) {
         delete payload.password;
-        const { error: err2 } = await supabase.from('profiles').upsert(payload, { onConflict: 'user_id' });
+        const { error: err2 } = await supabase.from('profiles').upsert(payload, { onConflict: 'email' });
         return !err2;
       }
       return !error;

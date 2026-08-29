@@ -77,17 +77,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     const cleanEmail = email.trim().toLowerCase();
     const canonicalId = getCanonicalUserId(cleanEmail);
-    let user = registeredUsers.find(u => u.email.trim().toLowerCase() === cleanEmail);
 
-    // Si no está en memoria local, buscar en la nube
-    if (!user && cloudStorageService.isReady()) {
+    // Buscar perfiles actualizados en Supabase para sincronizar contraseñas cambiadas en otros dispositivos
+    if (cloudStorageService.isReady()) {
       const cloudProfiles = await cloudStorageService.fetchProfiles();
-      if (cloudProfiles) {
+      if (cloudProfiles && cloudProfiles.length > 0) {
         const mapped = cloudProfiles.map(u => ({ ...u, id: getCanonicalUserId(u.email) }));
-        setRegisteredUsers(mapped);
-        storageService.saveUsers(mapped);
-        user = mapped.find(u => u.email.trim().toLowerCase() === cleanEmail);
+        setRegisteredUsers(prev => {
+          const mergedMap = new Map<string, UserProfile>();
+          prev.forEach(u => mergedMap.set(u.email.toLowerCase(), { ...u, id: getCanonicalUserId(u.email) }));
+          mapped.forEach(u => mergedMap.set(u.email.toLowerCase(), { ...u, id: getCanonicalUserId(u.email) }));
+          const mergedList = Array.from(mergedMap.values());
+          storageService.saveUsers(mergedList);
+          return mergedList;
+        });
       }
+    }
+
+    let user = registeredUsers.find(u => u.email.trim().toLowerCase() === cleanEmail);
+    if (!user) {
+      const all = storageService.getUsers();
+      user = all.find(u => u.email.trim().toLowerCase() === cleanEmail);
     }
 
     if (!user) {
