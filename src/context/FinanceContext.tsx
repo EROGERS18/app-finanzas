@@ -133,6 +133,23 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setIsCloudSyncing(true);
     try {
       const uId = currentUser.id;
+
+      // 1. PUSH: Subir perfil de usuario a Supabase si no existe en la nube
+      await cloudStorageService.saveProfile(currentUser);
+
+      // 2. PUSH: Subir datos locales actuales a la nube de Supabase
+      await Promise.all([
+        ...categories.map(c => cloudStorageService.saveCategory(uId, c)),
+        ...paymentMethods.map(pm => cloudStorageService.savePaymentMethod(uId, pm)),
+        ...creditCards.map(cc => cloudStorageService.saveCreditCard(uId, cc)),
+        ...cardMovements.map(cm => cloudStorageService.saveCardMovement(uId, cm)),
+        ...loans.map(l => cloudStorageService.saveLoan(uId, l)),
+        ...loanPayments.map(lp => cloudStorageService.saveLoanPayment(uId, lp)),
+        ...transactions.map(tx => cloudStorageService.saveTransaction(uId, tx)),
+        ...budgets.map(b => cloudStorageService.saveBudget(uId, b)),
+      ]);
+
+      // 3. PULL: Descargar estado actualizado desde Supabase
       const [cCloud, pmCloud, ccCloud, cmCloud, lCloud, lpCloud, txCloud, bCloud] = await Promise.all([
         cloudStorageService.fetchCategories(uId),
         cloudStorageService.fetchPaymentMethods(uId),
@@ -153,7 +170,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (txCloud) setTransactions(txCloud);
       if (bCloud && bCloud.length > 0) setBudgets(bCloud);
     } catch (err) {
-      console.error('Error al sincronizar con la nube:', err);
+      console.error('Error al realizar sincronización bidireccional con la nube:', err);
     } finally {
       setIsCloudSyncing(false);
     }
