@@ -24,7 +24,7 @@ export const INITIAL_PAYMENT_METHODS: PaymentMethod[] = [
     lastFour: '4589',
     color: '#0284c7',
     currency: 'DOP',
-    balance: 45200.00
+    balance: 0.00
   },
   {
     id: 'pm-popular',
@@ -34,7 +34,7 @@ export const INITIAL_PAYMENT_METHODS: PaymentMethod[] = [
     lastFour: '1290',
     color: '#059669',
     currency: 'DOP',
-    balance: 85000.00
+    balance: 0.00
   },
   {
     id: 'pm-tc-bhd',
@@ -54,7 +54,7 @@ export const INITIAL_PAYMENT_METHODS: PaymentMethod[] = [
     type: 'cash',
     color: '#d97706',
     currency: 'DOP',
-    balance: 6500.00
+    balance: 0.00
   },
   {
     id: 'pm-usd-popular',
@@ -62,9 +62,9 @@ export const INITIAL_PAYMENT_METHODS: PaymentMethod[] = [
     type: 'savings_account',
     bankName: 'Banco Popular',
     lastFour: '9044',
-    color: '#4f46e5',
+    color: '#0284c7',
     currency: 'USD',
-    balance: 1250.00
+    balance: 0.00
   }
 ];
 
