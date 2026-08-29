@@ -216,6 +216,21 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
+  // Auto-sincronización al iniciar sesión y suscripción en tiempo real (Realtime WebSockets)
+  useEffect(() => {
+    if (!currentUser || !cloudStorageService.isReady()) return;
+
+    syncCloudData();
+
+    const unsubscribe = cloudStorageService.subscribeToChanges(currentUser.id, () => {
+      syncCloudData();
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [currentUser?.id]);
+
   // Filtros
   const currentYearMonth = new Date().toISOString().slice(0, 7);
   const [selectedMonth, setSelectedMonth] = useState<string>(currentYearMonth);

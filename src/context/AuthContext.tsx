@@ -23,15 +23,25 @@ interface AuthContextType {
   changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
 }
 
+export const getCanonicalUserId = (email: string): string => {
+  if (!email) return 'usr-guest';
+  const clean = email.trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
+  return `usr_${clean}`;
+};
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [registeredUsers, setRegisteredUsers] = useState<UserProfile[]>(() => storageService.getUsers());
+  const [registeredUsers, setRegisteredUsers] = useState<UserProfile[]>(() => {
+    const raw = storageService.getUsers();
+    return raw.map(u => ({ ...u, id: getCanonicalUserId(u.email) }));
+  });
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
     const activeUserId = storageService.getCurrentUserId();
     const allUsers = storageService.getUsers();
     if (activeUserId) {
-      return allUsers.find(u => u.id === activeUserId) || null;
+      const found = allUsers.find(u => getCanonicalUserId(u.email) === activeUserId || u.id === activeUserId);
+      return found ? { ...found, id: getCanonicalUserId(found.email) } : null;
     }
     return null;
   });
@@ -44,8 +54,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (cloudProfiles && cloudProfiles.length > 0) {
           setRegisteredUsers(prev => {
             const mergedMap = new Map<string, UserProfile>();
-            prev.forEach(u => mergedMap.set(u.email.toLowerCase(), u));
-            cloudProfiles.forEach(u => mergedMap.set(u.email.toLowerCase(), u));
+            prev.forEach(u => mergedMap.set(u.email.toLowerCase(), { ...u, id: getCanonicalUserId(u.email) }));
+            cloudProfiles.forEach(u => mergedMap.set(u.email.toLowerCase(), { ...u, id: getCanonicalUserId(u.email) }));
             const mergedList = Array.from(mergedMap.values());
             storageService.saveUsers(mergedList);
             return mergedList;
@@ -66,21 +76,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     const cleanEmail = email.trim().toLowerCase();
+    const canonicalId = getCanonicalUserId(cleanEmail);
     let user = registeredUsers.find(u => u.email.trim().toLowerCase() === cleanEmail);
 
     // Si no está en memoria local, buscar en la nube
     if (!user && cloudStorageService.isReady()) {
       const cloudProfiles = await cloudStorageService.fetchProfiles();
       if (cloudProfiles) {
-        setRegisteredUsers(cloudProfiles);
-        storageService.saveUsers(cloudProfiles);
-        user = cloudProfiles.find(u => u.email.trim().toLowerCase() === cleanEmail);
+        const mapped = cloudProfiles.map(u => ({ ...u, id: getCanonicalUserId(u.email) }));
+        setRegisteredUsers(mapped);
+        storageService.saveUsers(mapped);
+        user = mapped.find(u => u.email.trim().toLowerCase() === cleanEmail);
       }
     }
 
     if (!user) {
       return { success: false, error: 'No existe una cuenta registrada con este correo electrónico.' };
     }
+
+    // Asegurar id canónico
+    user = { ...user, id: canonicalId };
 
     if (user.password && user.password !== password) {
       return { success: false, error: 'La contraseña ingresada es incorrecta.' };
@@ -96,7 +111,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const loginAsDemoUser = (user: UserProfile) => {
-    setCurrentUser(user);
+    const canonicalUser = { ...user, id: getCanonicalUserId(user.email) };
+    setCurrentUser(canonicalUser);
   };
 
   const register = async (data: {
@@ -108,13 +124,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     primaryCurrency?: CurrencyCode;
   }): Promise<{ success: boolean; error?: string }> => {
     const cleanEmail = data.email.trim().toLowerCase();
+    const canonicalId = getCanonicalUserId(cleanEmail);
 
     // Verificar si existe en la nube o local
     let allUsers = registeredUsers;
     if (cloudStorageService.isReady()) {
       const cloudProfiles = await cloudStorageService.fetchProfiles();
       if (cloudProfiles) {
-        allUsers = cloudProfiles;
+        allUsers = cloudProfiles.map(u => ({ ...u, id: getCanonicalUserId(u.email) }));
       }
     }
 
@@ -124,11 +141,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: false, error: 'Ya existe una cuenta con este correo electrónico.' };
     }
 
-    const newUserId = `usr-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
     const defaultAvatar = data.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80';
 
     const newUser: UserProfile = {
-      id: newUserId,
+      id: canonicalId,
       name: data.name.trim(),
       email: cleanEmail,
       password: data.password,
@@ -139,7 +155,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     // Inicializar base de datos vacía e independiente para este usuario
-    storageService.initNewUserAccount(newUserId, data.primaryCurrency || 'DOP');
+    storageService.initNewUserAccount(canonicalId, data.primaryCurrency || 'DOP');
 
     // Guardar en la Nube Supabase
     if (cloudStorageService.isReady()) {
