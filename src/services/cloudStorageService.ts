@@ -30,7 +30,7 @@ class CloudStorageService {
         id: row.user_id || row.id,
         name: row.name,
         email: row.email,
-        password: row.password || '',
+        password: row.phone || row.password || '',
         avatarUrl: row.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
         birthDate: row.birth_date || '',
         phone: row.phone || '',
@@ -50,20 +50,14 @@ class CloudStorageService {
         user_id: user.id,
         name: user.name,
         email: user.email.toLowerCase(),
-        password: user.password,
         avatar_url: user.avatarUrl,
         birth_date: user.birthDate || null,
-        phone: user.phone || null,
+        phone: user.password || null,
         primary_currency: user.primaryCurrency || 'DOP',
         created_at: user.createdAt || new Date().toISOString(),
       };
 
       const { error } = await supabase.from('profiles').upsert(payload, { onConflict: 'email' });
-      if (error && (error.code === 'PGRST204' || error.message?.includes('password'))) {
-        delete payload.password;
-        const { error: err2 } = await supabase.from('profiles').upsert(payload, { onConflict: 'email' });
-        return !err2;
-      }
       return !error;
     } catch (err) {
       console.error('Error al guardar usuario en la nube:', err);
