@@ -44,12 +44,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab }) =>
 
   const activeLoans = loans.filter(l => l.status !== 'completed' && l.pendingBalance > 0);
 
+  const hasUserCreatedData = 
+    transactions.length > 0 || 
+    paymentMethods.length > 0 || 
+    creditCards.length > 0 || 
+    loans.length > 0;
+
   const showOnboarding = isCloudInitialized && 
-    !settings.hasCompletedOnboarding && 
-    transactions.length === 0 && 
-    creditCards.length === 0 && 
-    loans.length === 0 && 
-    paymentMethods.length === 0;
+    !hasUserCreatedData && 
+    !settings.hasCompletedOnboarding;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
