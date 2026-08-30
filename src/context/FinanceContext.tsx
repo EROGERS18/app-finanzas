@@ -126,6 +126,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Nube y Sincronización
   const [isCloudSyncing, setIsCloudSyncing] = useState<boolean>(false);
+  const [isCloudInitialized, setIsCloudInitialized] = useState<boolean>(false);
   const isCloudActive = isSupabaseConfigured();
 
   const syncCloudData = async () => {
@@ -217,6 +218,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       console.error('Error al realizar sincronización con la nube:', err);
     } finally {
       setIsCloudSyncing(false);
+      setIsCloudInitialized(true);
     }
   };
 
@@ -307,62 +309,78 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, [settings.theme]);
 
-  // Persistencia reactiva aislada por usuario (Local + Nube)
+  // Persistencia reactiva aislada por usuario (Local + Nube protegida)
   useEffect(() => {
     if (currentUser) {
       storageService.saveCategories(currentUser.id, categories);
-      categories.forEach(c => cloudStorageService.saveCategory(currentUser.id, c));
+      if (isCloudInitialized) {
+        categories.forEach(c => cloudStorageService.saveCategory(currentUser.id, c));
+      }
     }
-  }, [categories, currentUser]);
+  }, [categories, currentUser, isCloudInitialized]);
 
   useEffect(() => {
     if (currentUser) {
       storageService.savePaymentMethods(currentUser.id, paymentMethods);
-      paymentMethods.forEach(pm => cloudStorageService.savePaymentMethod(currentUser.id, pm));
+      if (isCloudInitialized) {
+        paymentMethods.forEach(pm => cloudStorageService.savePaymentMethod(currentUser.id, pm));
+      }
     }
-  }, [paymentMethods, currentUser]);
+  }, [paymentMethods, currentUser, isCloudInitialized]);
 
   useEffect(() => {
     if (currentUser) {
       storageService.saveCreditCards(currentUser.id, creditCards);
-      creditCards.forEach(c => cloudStorageService.saveCreditCard(currentUser.id, c));
+      if (isCloudInitialized) {
+        creditCards.forEach(c => cloudStorageService.saveCreditCard(currentUser.id, c));
+      }
     }
-  }, [creditCards, currentUser]);
+  }, [creditCards, currentUser, isCloudInitialized]);
 
   useEffect(() => {
     if (currentUser) {
       storageService.saveCardMovements(currentUser.id, cardMovements);
-      cardMovements.forEach(cm => cloudStorageService.saveCardMovement(currentUser.id, cm));
+      if (isCloudInitialized) {
+        cardMovements.forEach(cm => cloudStorageService.saveCardMovement(currentUser.id, cm));
+      }
     }
-  }, [cardMovements, currentUser]);
+  }, [cardMovements, currentUser, isCloudInitialized]);
 
   useEffect(() => {
     if (currentUser) {
       storageService.saveLoans(currentUser.id, loans);
-      loans.forEach(l => cloudStorageService.saveLoan(currentUser.id, l));
+      if (isCloudInitialized) {
+        loans.forEach(l => cloudStorageService.saveLoan(currentUser.id, l));
+      }
     }
-  }, [loans, currentUser]);
+  }, [loans, currentUser, isCloudInitialized]);
 
   useEffect(() => {
     if (currentUser) {
       storageService.saveLoanPayments(currentUser.id, loanPayments);
-      loanPayments.forEach(lp => cloudStorageService.saveLoanPayment(currentUser.id, lp));
+      if (isCloudInitialized) {
+        loanPayments.forEach(lp => cloudStorageService.saveLoanPayment(currentUser.id, lp));
+      }
     }
-  }, [loanPayments, currentUser]);
+  }, [loanPayments, currentUser, isCloudInitialized]);
 
   useEffect(() => {
     if (currentUser) {
       storageService.saveTransactions(currentUser.id, transactions);
-      transactions.forEach(t => cloudStorageService.saveTransaction(currentUser.id, t));
+      if (isCloudInitialized) {
+        transactions.forEach(t => cloudStorageService.saveTransaction(currentUser.id, t));
+      }
     }
-  }, [transactions, currentUser]);
+  }, [transactions, currentUser, isCloudInitialized]);
 
   useEffect(() => {
     if (currentUser) {
       storageService.saveBudgets(currentUser.id, budgets);
-      budgets.forEach(b => cloudStorageService.saveBudget(currentUser.id, b));
+      if (isCloudInitialized) {
+        budgets.forEach(b => cloudStorageService.saveBudget(currentUser.id, b));
+      }
     }
-  }, [budgets, currentUser]);
+  }, [budgets, currentUser, isCloudInitialized]);
 
   useEffect(() => {
     if (currentUser) storageService.saveSettings(currentUser.id, settings);

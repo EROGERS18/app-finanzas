@@ -31,6 +31,7 @@ interface DashboardViewProps {
 export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab }) => {
   const { 
     transactions,
+    paymentMethods,
     metrics, 
     creditCards, 
     loans, 
@@ -89,8 +90,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab }) =>
         </div>
       </div>
 
-      {/* Si la cuenta no tiene registros, mostrar Widget de Bienvenida en 3 pasos */}
-      {transactions.length === 0 && creditCards.length === 0 && loans.length === 0 && (
+      {/* Si la cuenta no tiene registros ni cuentas creadas, mostrar Widget de Bienvenida */}
+      {transactions.length === 0 && creditCards.length === 0 && loans.length === 0 && paymentMethods.length === 0 && (
         <WelcomeOnboardingWidget
           onNavigateTab={setActiveTab}
           onOpenQuickIncome={() => openQuickModal('income')}

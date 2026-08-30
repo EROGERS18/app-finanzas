@@ -59,9 +59,9 @@ class StorageService {
   getCategories(userId: string): Category[] {
     try {
       const data = localStorage.getItem(this.getUserKey(userId, 'categories'));
-      return data ? JSON.parse(data) : INITIAL_CATEGORIES;
+      return data ? JSON.parse(data) : [];
     } catch {
-      return INITIAL_CATEGORIES;
+      return [];
     }
   }
 
@@ -73,9 +73,9 @@ class StorageService {
   getPaymentMethods(userId: string): PaymentMethod[] {
     try {
       const data = localStorage.getItem(this.getUserKey(userId, 'payment_methods'));
-      return data ? JSON.parse(data) : INITIAL_PAYMENT_METHODS;
+      return data ? JSON.parse(data) : [];
     } catch {
-      return INITIAL_PAYMENT_METHODS;
+      return [];
     }
   }
 
