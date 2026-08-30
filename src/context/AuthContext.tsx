@@ -232,46 +232,65 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Escuchador de sesión OAuth de Supabase (Google Sign-In)
   useEffect(() => {
-    const handleOAuthSession = async () => {
+    let authSubscription: any = null;
+
+    const setupAuthListener = async () => {
       if (!cloudStorageService.isReady()) return;
       const { supabase } = await import('../services/supabaseClient');
       if (!supabase) return;
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session && session.user && session.user.email) {
-        const cleanEmail = session.user.email.toLowerCase();
-        const canonicalId = getCanonicalUserId(cleanEmail);
-        const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name || cleanEmail.split('@')[0];
-        const avatarUrl = session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80';
+      const processSession = async (session: any) => {
+        if (session && session.user && session.user.email) {
+          const cleanEmail = session.user.email.toLowerCase();
+          const canonicalId = getCanonicalUserId(cleanEmail);
+          const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name || cleanEmail.split('@')[0];
+          const avatarUrl = session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80';
 
-        const cloudProfiles = await cloudStorageService.fetchProfiles();
-        const existing = cloudProfiles?.find(u => u.email.toLowerCase() === cleanEmail);
+          const cloudProfiles = await cloudStorageService.fetchProfiles();
+          const existing = cloudProfiles?.find(u => u.email.toLowerCase() === cleanEmail);
 
-        if (!existing) {
-          const googleUser: UserProfile & { isJustRegistered?: boolean } = {
-            id: canonicalId,
-            name,
-            email: cleanEmail,
-            password: '',
-            avatarUrl,
-            primaryCurrency: 'DOP',
-            createdAt: new Date().toISOString(),
-            isJustRegistered: true
-          };
+          if (!existing) {
+            const googleUser: UserProfile & { isJustRegistered?: boolean } = {
+              id: canonicalId,
+              name,
+              email: cleanEmail,
+              password: '',
+              avatarUrl,
+              primaryCurrency: 'DOP',
+              createdAt: new Date().toISOString(),
+              isJustRegistered: true
+            };
 
-          storageService.initNewUserAccount(canonicalId, 'DOP');
-          await cloudStorageService.saveProfile(googleUser);
+            storageService.initNewUserAccount(canonicalId, 'DOP');
+            await cloudStorageService.saveProfile(googleUser);
 
-          setRegisteredUsers(prev => [...prev.filter(u => u.email.toLowerCase() !== cleanEmail), googleUser]);
-          setCurrentUser(googleUser);
-        } else {
-          const loggedUser = { ...existing, id: canonicalId, avatarUrl: avatarUrl || existing.avatarUrl };
-          setCurrentUser(loggedUser);
+            setRegisteredUsers(prev => [...prev.filter(u => u.email.toLowerCase() !== cleanEmail), googleUser]);
+            setCurrentUser(googleUser);
+          } else {
+            const loggedUser = { ...existing, id: canonicalId, avatarUrl: avatarUrl || existing.avatarUrl };
+            setCurrentUser(loggedUser);
+          }
         }
-      }
+      };
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) await processSession(session);
+
+      const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          if (session) await processSession(session);
+        }
+      });
+      authSubscription = listener?.subscription;
     };
 
-    handleOAuthSession();
+    setupAuthListener();
+
+    return () => {
+      if (authSubscription) {
+        authSubscription.unsubscribe();
+      }
+    };
   }, []);
 
   const loginWithGoogle = async (): Promise<{ success: boolean; error?: string }> => {
@@ -284,10 +303,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: 'Servicio de autenticación no disponible.' };
       }
 
+      const redirectUrl = window.location.origin.includes('localhost') 
+        ? window.location.origin 
+        : 'https://www.domifinan.com';
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: redirectUrl,
         },
       });
 
