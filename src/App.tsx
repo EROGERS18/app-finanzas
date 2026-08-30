@@ -29,18 +29,8 @@ const MainLayout: React.FC = () => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
 
-  // Estado del Tour Onboarding
+  // Estado del Tour Onboarding (Solo se abre si el usuario lo solicita manualmente en Configuración)
   const [tourOpen, setTourOpen] = useState(false);
-
-  useEffect(() => {
-    if (currentUser) {
-      const tourKey = `finandom_onboarding_done_${currentUser.id}`;
-      const isDone = localStorage.getItem(tourKey);
-      if (!isDone) {
-        setTourOpen(true);
-      }
-    }
-  }, [currentUser]);
 
   const handleFinishTour = () => {
     if (currentUser) {
