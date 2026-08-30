@@ -22,6 +22,7 @@ interface AuthContextType {
   updateProfile: (updatedData: Partial<UserProfile>) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
   deleteAccount: () => Promise<{ success: boolean; error?: string }>;
+  loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
 }
 
 export const getCanonicalUserId = (email: string): string => {
@@ -229,6 +230,78 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: true };
   };
 
+  // Escuchador de sesión OAuth de Supabase (Google Sign-In)
+  useEffect(() => {
+    const handleOAuthSession = async () => {
+      if (!cloudStorageService.isReady()) return;
+      const { supabase } = await import('../services/supabaseClient');
+      if (!supabase) return;
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session && session.user && session.user.email) {
+        const cleanEmail = session.user.email.toLowerCase();
+        const canonicalId = getCanonicalUserId(cleanEmail);
+        const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name || cleanEmail.split('@')[0];
+        const avatarUrl = session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80';
+
+        const cloudProfiles = await cloudStorageService.fetchProfiles();
+        const existing = cloudProfiles?.find(u => u.email.toLowerCase() === cleanEmail);
+
+        if (!existing) {
+          const googleUser: UserProfile & { isJustRegistered?: boolean } = {
+            id: canonicalId,
+            name,
+            email: cleanEmail,
+            password: '',
+            avatarUrl,
+            primaryCurrency: 'DOP',
+            createdAt: new Date().toISOString(),
+            isJustRegistered: true
+          };
+
+          storageService.initNewUserAccount(canonicalId, 'DOP');
+          await cloudStorageService.saveProfile(googleUser);
+
+          setRegisteredUsers(prev => [...prev.filter(u => u.email.toLowerCase() !== cleanEmail), googleUser]);
+          setCurrentUser(googleUser);
+        } else {
+          const loggedUser = { ...existing, id: canonicalId, avatarUrl: avatarUrl || existing.avatarUrl };
+          setCurrentUser(loggedUser);
+        }
+      }
+    };
+
+    handleOAuthSession();
+  }, []);
+
+  const loginWithGoogle = async (): Promise<{ success: boolean; error?: string }> => {
+    try {
+      if (!cloudStorageService.isReady()) {
+        return { success: false, error: 'La conexión con la nube no está configurada.' };
+      }
+      const { supabase } = await import('../services/supabaseClient');
+      if (!supabase) {
+        return { success: false, error: 'Servicio de autenticación no disponible.' };
+      }
+
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin,
+        },
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      console.error('Error al iniciar sesión con Google:', err);
+      return { success: false, error: err.message || 'Error al conectar con Google.' };
+    }
+  };
+
   const deleteAccount = async (): Promise<{ success: boolean; error?: string }> => {
     if (!currentUser) return { success: false, error: 'No hay usuario autenticado.' };
     const uId = currentUser.id;
@@ -237,6 +310,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       if (cloudStorageService.isReady()) {
         await cloudStorageService.deleteProfile(uId, userEmail);
+        const { supabase } = await import('../services/supabaseClient');
+        if (supabase) {
+          await supabase.auth.signOut();
+        }
       }
 
       setRegisteredUsers(prev => {
@@ -267,6 +344,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateProfile,
         changePassword,
         deleteAccount,
+        loginWithGoogle,
       }}
     >
       {children}
