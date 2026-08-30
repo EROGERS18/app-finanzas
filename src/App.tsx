@@ -29,12 +29,25 @@ const MainLayout: React.FC = () => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
 
-  // Estado del Tour Onboarding (Solo se abre si el usuario lo solicita manualmente en Configuración)
+  // Estado del Tour Onboarding (Se abre ÚNICAMENTE 1 vez al registrarse un usuario nuevo)
   const [tourOpen, setTourOpen] = useState(false);
+
+  useEffect(() => {
+    if (currentUser) {
+      const tourKey = `finandom_onboarding_done_${currentUser.id}`;
+      const isDone = localStorage.getItem(tourKey);
+      
+      // Abrir únicamente si la cuenta se acaba de registrar en este momento y nunca la ha visto
+      if (!isDone && (currentUser as any).isJustRegistered) {
+        setTourOpen(true);
+      }
+    }
+  }, [currentUser]);
 
   const handleFinishTour = () => {
     if (currentUser) {
       localStorage.setItem(`finandom_onboarding_done_${currentUser.id}`, 'true');
+      delete (currentUser as any).isJustRegistered;
     }
     setTourOpen(false);
   };

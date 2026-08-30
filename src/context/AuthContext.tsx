@@ -154,7 +154,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const defaultAvatar = data.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80';
 
-    const newUser: UserProfile = {
+    const newUser: UserProfile & { isJustRegistered?: boolean } = {
       id: canonicalId,
       name: data.name.trim(),
       email: cleanEmail,
@@ -163,6 +163,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       birthDate: data.birthDate || '',
       primaryCurrency: data.primaryCurrency || 'DOP',
       createdAt: new Date().toISOString(),
+      isJustRegistered: true
     };
 
     // Inicializar base de datos vacía e independiente para este usuario
