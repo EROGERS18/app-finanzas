@@ -121,13 +121,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Asegurar id canónico
     user = { ...user, id: canonicalId };
 
-    if (user.password && user.password !== password) {
-      return { success: false, error: 'La contraseña ingresada es incorrecta.' };
+    // PROTEGER CUENTAS DE GOOGLE: Denegar inicio de sesión manual si la cuenta fue creada mediante Google OAuth
+    if (user.authProvider === 'google' || !user.password || user.password === '') {
+      return { 
+        success: false, 
+        error: 'Esta cuenta fue registrada con Google. Por favor, usa el botón "Continuar con Google" para acceder.' 
+      };
     }
 
-    if (!user.password) {
-      user.password = password;
-      updateProfile({ password });
+    if (user.password !== password) {
+      return { success: false, error: 'La contraseña ingresada es incorrecta.' };
     }
 
     setCurrentUser(user);
@@ -176,6 +179,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       birthDate: data.birthDate || '',
       primaryCurrency: data.primaryCurrency || 'DOP',
       createdAt: new Date().toISOString(),
+      authProvider: 'email',
       isJustRegistered: true
     };
 
@@ -258,6 +262,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               avatarUrl,
               primaryCurrency: 'DOP',
               createdAt: new Date().toISOString(),
+              authProvider: 'google',
               isJustRegistered: true
             };
 
@@ -267,7 +272,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setRegisteredUsers(prev => [...prev.filter(u => u.email.toLowerCase() !== cleanEmail), googleUser]);
             setCurrentUser(googleUser);
           } else {
-            const loggedUser = { ...existing, id: canonicalId, avatarUrl: avatarUrl || existing.avatarUrl };
+            const loggedUser: UserProfile = { 
+              ...existing, 
+              id: canonicalId, 
+              authProvider: 'google',
+              avatarUrl: avatarUrl || existing.avatarUrl 
+            };
             setCurrentUser(loggedUser);
           }
         }

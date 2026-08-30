@@ -8,12 +8,13 @@ export interface UserProfile {
   id: string;
   name: string;
   email: string;
-  password: string;
+  password?: string;
   avatarUrl: string;
   birthDate?: string;
   phone?: string;
   primaryCurrency: CurrencyCode;
   createdAt: string;
+  authProvider?: 'email' | 'google';
 }
 
 export interface Category {
