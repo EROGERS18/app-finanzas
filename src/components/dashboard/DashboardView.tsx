@@ -36,10 +36,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab }) =>
     creditCards, 
     loans, 
     displayCurrency, 
-    openQuickModal 
+    openQuickModal,
+    isCloudInitialized,
+    settings,
+    updateSettings
   } = useFinance();
 
   const activeLoans = loans.filter(l => l.status !== 'completed' && l.pendingBalance > 0);
+
+  const showOnboarding = isCloudInitialized && 
+    !settings.hasCompletedOnboarding && 
+    transactions.length === 0 && 
+    creditCards.length === 0 && 
+    loans.length === 0 && 
+    paymentMethods.length === 0;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -90,8 +100,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab }) =>
         </div>
       </div>
 
-      {/* Si la cuenta no tiene registros ni cuentas creadas, mostrar Widget de Bienvenida */}
-      {transactions.length === 0 && creditCards.length === 0 && loans.length === 0 && paymentMethods.length === 0 && (
+      {/* Si la cuenta no tiene registros ni cuentas creadas, y el usuario no ha completado el onboarding */}
+      {showOnboarding && (
         <WelcomeOnboardingWidget
           onNavigateTab={setActiveTab}
           onOpenQuickIncome={() => openQuickModal('income')}
@@ -99,6 +109,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab }) =>
           hasIncome={metrics.totalIncome > 0}
           hasDebts={metrics.totalDebts > 0}
           hasExpenses={metrics.totalExpense > 0}
+          onDismiss={() => updateSettings({ hasCompletedOnboarding: true })}
         />
       )}
 

@@ -148,6 +148,7 @@ export interface UserSettings {
   q1EndDay: number;
   notificationsAllowed: boolean;
   internalRemindersActive: boolean;
+  hasCompletedOnboarding?: boolean;
 }
 
 // Métricas Financieras Enriquecidas con Deudas y Patrimonio

@@ -39,6 +39,7 @@ interface FinanceContextType {
 
   // Estado de Nube y Sincronización
   isCloudSyncing: boolean;
+  isCloudInitialized: boolean;
   isCloudActive: boolean;
   syncCloudData: () => Promise<void>;
   
@@ -917,6 +918,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         loans,
         loanPayments,
         isCloudSyncing,
+        isCloudInitialized,
         isCloudActive,
         syncCloudData,
         selectedMonth,

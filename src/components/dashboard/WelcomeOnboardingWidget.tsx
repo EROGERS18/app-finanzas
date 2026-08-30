@@ -9,6 +9,7 @@ interface WelcomeOnboardingWidgetProps {
   hasIncome: boolean;
   hasDebts: boolean;
   hasExpenses: boolean;
+  onDismiss?: () => void;
 }
 
 export const WelcomeOnboardingWidget: React.FC<WelcomeOnboardingWidgetProps> = ({
@@ -17,7 +18,8 @@ export const WelcomeOnboardingWidget: React.FC<WelcomeOnboardingWidgetProps> = (
   onOpenQuickExpense,
   hasIncome,
   hasDebts,
-  hasExpenses
+  hasExpenses,
+  onDismiss
 }) => {
   return (
     <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-indigo-500/10 border border-emerald-500/30 shadow-xl space-y-6">
@@ -35,6 +37,15 @@ export const WelcomeOnboardingWidget: React.FC<WelcomeOnboardingWidgetProps> = (
             Sigue estos 3 sencillos pasos para configurar tu situación financiera y transformar este panel en tu resumen inteligente en tiempo real.
           </p>
         </div>
+
+        {onDismiss && (
+          <button
+            onClick={onDismiss}
+            className="px-3.5 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition"
+          >
+            Ocultar Guía
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
