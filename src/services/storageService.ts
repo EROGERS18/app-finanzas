@@ -425,28 +425,10 @@ class StorageService {
     this.saveSettings(userId, INITIAL_SETTINGS);
   }
 
-  // Inicializar nuevo usuario registrado en blanco
+  // Inicializar nuevo usuario registrado exclusivamente con Categorías demo (0 cuentas, 0 tarjetas, 0 transacciones)
   initNewUserAccount(userId: string, currency: 'DOP' | 'USD' = 'DOP'): void {
-    const defaultMethods: PaymentMethod[] = [
-      {
-        id: `pm-default-bank-${userId}`,
-        name: 'Cuenta Principal',
-        type: 'bank_account',
-        bankName: 'Banco',
-        currency,
-        balance: 0.00
-      },
-      {
-        id: `pm-default-cash-${userId}`,
-        name: 'Efectivo',
-        type: 'cash',
-        currency,
-        balance: 0.00
-      }
-    ];
-
     this.saveCategories(userId, INITIAL_CATEGORIES);
-    this.savePaymentMethods(userId, defaultMethods);
+    this.savePaymentMethods(userId, []);
     this.saveCreditCards(userId, []);
     this.saveCardMovements(userId, []);
     this.saveLoans(userId, []);

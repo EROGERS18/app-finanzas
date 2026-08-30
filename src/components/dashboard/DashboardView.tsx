@@ -103,19 +103,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab }) =>
         </div>
       </div>
 
-      {/* Si la cuenta no tiene registros ni cuentas creadas, y el usuario no ha completado el onboarding */}
-      {showOnboarding && (
-        <WelcomeOnboardingWidget
-          onNavigateTab={setActiveTab}
-          onOpenQuickIncome={() => openQuickModal('income')}
-          onOpenQuickExpense={() => openQuickModal('expense')}
-          hasIncome={metrics.totalIncome > 0}
-          hasDebts={metrics.totalDebts > 0}
-          hasExpenses={metrics.totalExpense > 0}
-          onDismiss={() => updateSettings({ hasCompletedOnboarding: true })}
-        />
-      )}
-
       {/* 6 Tarjetas de Resumen Solicitadas con Ayudas Contextuales Tooltip */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5">
         

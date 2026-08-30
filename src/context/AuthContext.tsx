@@ -21,6 +21,7 @@ interface AuthContextType {
   logout: () => void;
   updateProfile: (updatedData: Partial<UserProfile>) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
+  deleteAccount: () => Promise<{ success: boolean; error?: string }>;
 }
 
 export const getCanonicalUserId = (email: string): string => {
@@ -215,6 +216,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: true };
   };
 
+  const deleteAccount = async (): Promise<{ success: boolean; error?: string }> => {
+    if (!currentUser) return { success: false, error: 'No hay usuario autenticado.' };
+    const uId = currentUser.id;
+    const userEmail = currentUser.email;
+
+    try {
+      if (cloudStorageService.isReady()) {
+        await cloudStorageService.clearAllUserData(uId);
+        const { supabase } = await import('../services/supabaseClient');
+        if (supabase) {
+          await supabase.from('profiles').delete().eq('user_id', uId);
+        }
+      }
+
+      setRegisteredUsers(prev => {
+        const filtered = prev.filter(u => u.email.toLowerCase() !== userEmail.toLowerCase());
+        storageService.saveUsers(filtered);
+        return filtered;
+      });
+
+      storageService.clearUserData(uId);
+      logout();
+      return { success: true };
+    } catch (err: any) {
+      console.error('Error al eliminar la cuenta:', err);
+      return { success: false, error: err.message || 'Error al eliminar la cuenta.' };
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -227,6 +257,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logout,
         updateProfile,
         changePassword,
+        deleteAccount,
       }}
     >
       {children}

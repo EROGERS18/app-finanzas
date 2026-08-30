@@ -19,6 +19,7 @@ import {
   HelpCircle
 } from 'lucide-react';
 import { useFinance } from '../../context/FinanceContext';
+import { useAuth } from '../../context/AuthContext';
 import { Category, PaymentMethod, CurrencyCode } from '../../types';
 import { IconHelper } from '../common/IconHelper';
 import { CategoryModal } from './CategoryModal';
@@ -33,6 +34,7 @@ interface SettingsViewProps {
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({ onReopenTour }) => {
+  const { currentUser, deleteAccount } = useAuth();
   const {
     categories,
     paymentMethods,
@@ -339,6 +341,35 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onReopenTour }) => {
             >
               <Trash2 className="w-3.5 h-3.5" />
               <span>Limpiar todo</span>
+            </button>
+          </div>
+
+          {/* Eliminar Cuenta */}
+          <div className="p-4 rounded-2xl bg-red-600/10 border border-red-500/30 flex flex-col justify-between">
+            <div>
+              <h3 className="font-bold text-xs sm:text-sm text-red-600 dark:text-red-400">
+                Eliminar Mi Cuenta Definitivamente
+              </h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Elimina permanentemente tu usuario, perfil y todos tus datos sincronizados en la nube de Supabase.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                confirmDelete({
+                  title: '⛔ ¿ELIMINAR MI CUENTA DEFINITIVAMENTE?',
+                  message: `¿Estás seguro de que deseas eliminar permanentemente la cuenta (${currentUser?.email})? Se borrará tu usuario y todos tus registros de la nube de Supabase. Esta acción NO se puede deshacer.`,
+                  confirmText: 'Sí, ELIMINAR MI CUENTA',
+                  cancelText: 'Cancelar',
+                  onConfirm: async () => {
+                    await deleteAccount();
+                  }
+                });
+              }}
+              className="mt-4 w-full py-2 px-3 rounded-xl bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-700 hover:to-rose-800 text-white font-black text-xs flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
+            >
+              <AlertTriangle className="w-4 h-4 text-amber-300" />
+              <span>Eliminar Mi Cuenta</span>
             </button>
           </div>
 
