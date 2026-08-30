@@ -582,6 +582,22 @@ class CloudStorageService {
     }
   }
 
+  async deleteProfile(userId: string, email: string): Promise<boolean> {
+    if (!this.isReady() || !supabase) return false;
+    try {
+      const cleanEmail = email.trim().toLowerCase();
+      await Promise.all([
+        supabase.from('profiles').delete().eq('user_id', userId),
+        supabase.from('profiles').delete().eq('email', cleanEmail),
+        this.clearAllUserData(userId)
+      ]);
+      return true;
+    } catch (err) {
+      console.error('Error al eliminar perfil del usuario:', err);
+      return false;
+    }
+  }
+
   // --- SUSCRIPCIÓN EN TIEMPO REAL (Realtime Sincro PC / Móvil) ---
   subscribeToChanges(userId: string, onUpdate: () => void): () => void {
     if (!this.isReady() || !supabase) return () => {};

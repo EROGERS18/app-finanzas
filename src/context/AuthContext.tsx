@@ -79,14 +79,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const cleanEmail = email.trim().toLowerCase();
     const canonicalId = getCanonicalUserId(cleanEmail);
 
-    // Buscar perfiles actualizados en Supabase para sincronizar contraseñas cambiadas en otros dispositivos
+    // 1. Consultar la Nube de Supabase para validar la existencia real de la cuenta
     if (cloudStorageService.isReady()) {
       const cloudProfiles = await cloudStorageService.fetchProfiles();
-      if (cloudProfiles && cloudProfiles.length > 0) {
+      if (cloudProfiles !== null) {
+        const existsInCloud = cloudProfiles.some(u => u.email.trim().toLowerCase() === cleanEmail);
+        if (!existsInCloud) {
+          // La cuenta fue eliminada de Supabase. Limpiar cache local del navegador y denegar login.
+          setRegisteredUsers(prev => {
+            const filtered = prev.filter(u => u.email.toLowerCase() !== cleanEmail);
+            storageService.saveUsers(filtered);
+            return filtered;
+          });
+          storageService.clearUserData(canonicalId);
+          return { success: false, error: 'No existe una cuenta registrada con este correo electrónico (ha sido eliminada).' };
+        }
+
+        // Sincronizar contraseña y perfil de la nube
         const mapped = cloudProfiles.map(u => ({ ...u, id: getCanonicalUserId(u.email) }));
         setRegisteredUsers(prev => {
           const mergedMap = new Map<string, UserProfile>();
-          prev.forEach(u => mergedMap.set(u.email.toLowerCase(), { ...u, id: getCanonicalUserId(u.email) }));
           mapped.forEach(u => mergedMap.set(u.email.toLowerCase(), { ...u, id: getCanonicalUserId(u.email) }));
           const mergedList = Array.from(mergedMap.values());
           storageService.saveUsers(mergedList);
@@ -224,11 +236,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       if (cloudStorageService.isReady()) {
-        await cloudStorageService.clearAllUserData(uId);
-        const { supabase } = await import('../services/supabaseClient');
-        if (supabase) {
-          await supabase.from('profiles').delete().eq('user_id', uId);
-        }
+        await cloudStorageService.deleteProfile(uId, userEmail);
       }
 
       setRegisteredUsers(prev => {
